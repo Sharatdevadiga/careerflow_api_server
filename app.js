@@ -15,7 +15,6 @@ import morgan from "morgan";
 
 // Load environment variables from .env file
 dotenv.config();
-const { CLIENT_URL } = process.env;
 
 // Creating an Express application instance
 const app = express();
@@ -31,7 +30,7 @@ app.use(cookieParser()); // for parsing cookies from client
 // CORS configuration to allow requests only from specified origin
 app.use(
   cors({
-    origin: CLIENT_URL, // Allow only the specific origin
+    origin: true, // Allow all origins
     credentials: true, // Allow credentials (cookies, headers)
   })
 );
