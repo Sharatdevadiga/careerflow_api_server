@@ -43,6 +43,10 @@ app.use("/api/v1/job", jobRouter); // Routes for job related actions
 app.use("/api/v1/savedjobs", savedJobRouter); // Routes for saved jobs
 app.use("/api/v1/appliedjobs", appliedJobRouter); // Routes for applied jobs
 
+app.use("/", (req, res) => {
+  res.send("Welcome to the Naukri Clone API 😊 : @Sharath");
+})
+
 // Route handler for undefined routes (404 Not Found)
 app.use("*", (req, res, next) => {
   next(new AppError("Cannot find this route on this server", 404));
