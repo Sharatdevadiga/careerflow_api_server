@@ -2,7 +2,7 @@ import asyncHandler from "../utils/asyncHandler.js";
 import { createSendToken } from "../utils/authenticationHelpers.js";
 
 import User from "../models/userModel.js";
-import AppError from "../utils/AppError.js";
+import AppError from "../utils/appError.js";
 import respondSuccess from "../utils/respondSuccess.js";
 import dotenv from "dotenv";
 import jwt from "jsonwebtoken";
