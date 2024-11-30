@@ -17,13 +17,7 @@ async function createAppliedJobs(userId, next) {
 
 // function to get all the appliedJobs for a user
 const getAppliedJobs = asyncHandler(async function (req, res, next) {
-  const appliedJobs = await AppliedJobs.find({ user: req.user._id });
-
-  if (!appliedJobs) {
-    appliedJobs = await AppliedJobs.create({ user: req.user._id, jobs: [] });
-  }
-
-  appliedJobs = await appliedJobs.populate("jobs");
+  let appliedJobs = await AppliedJobs.find({ user: req.user._id }).populate("jobs")
 
   respondSuccess(200, { appliedJobs }, res);
 });

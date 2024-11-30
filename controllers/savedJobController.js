@@ -13,7 +13,7 @@ async function createSavedJobs(userId, next) {
   } catch (err) {
     next(err);
   }
-}
+} 
 
 // function to get all the saved jobs for a user
 const getSavedJobs = asyncHandler(async function (req, res, next) {
