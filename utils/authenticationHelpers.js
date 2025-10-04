@@ -30,5 +30,5 @@ export function createSendToken(user, statusCode, res) {
   user.password = undefined;
 
   // Send a success response with the user data and JWT token
-  respondSuccess(statusCode, { user }, res, { token });
+  respondSuccess(statusCode, user, res, { token });
 }

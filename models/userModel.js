@@ -42,16 +42,16 @@ const userSchema = mongoose.Schema({
     default: "employee",
   },
 
-  // employee -> name, saved jobs and appliedJobs
-  name: {
+  // User's first and last name (required for all users)
+  firstName: {
     type: String,
-    default: "",
-    required: [
-      function () {
-        return this.type === "employee";
-      },
-      "Name of the user is required",
-    ],
+    required: [true, "First name is required"],
+    trim: true,
+  },
+  lastName: {
+    type: String,
+    required: [true, "Last name is required"],
+    trim: true,
   },
   savedJobsId: {
     type: mongoose.Schema.ObjectId,
@@ -77,6 +77,18 @@ const userSchema = mongoose.Schema({
 
   // companyJobsId: [{ type: mongoose.Schema.ObjectId, ref: "jobs" }],
 });
+
+// Virtual field to get full name
+userSchema.virtual("fullName").get(function () {
+  if (this.firstName && this.lastName) {
+    return `${this.firstName} ${this.lastName}`;
+  }
+  return this.firstName || this.lastName || "";
+});
+
+// Ensure virtual fields are serialized
+userSchema.set('toJSON', { virtuals: true });
+userSchema.set('toObject', { virtuals: true });
 
 // Pre-save middleware to hash the password before saving to the database
 userSchema.pre("save", async function (next) {

@@ -19,7 +19,16 @@ const { JWT_SECRET } = process.env;
 
 // SignUp function to handle user registration
 const signUp = asyncHandler(async function (req, res, next) {
-  const { email, password, passwordConfirm, type, name, company } = req.body;
+  const { 
+    email, 
+    password, 
+    passwordConfirm, 
+    type, 
+    role, 
+    firstName, 
+    lastName, 
+    company 
+  } = req.body;
 
   if (!email || !password || !passwordConfirm) {
     return next(
@@ -27,15 +36,43 @@ const signUp = asyncHandler(async function (req, res, next) {
     );
   }
 
-  // Create a new user and bookmark for that user, in the database
-  const newUser = await User.create({
+  // Map role to type if role is provided (for frontend compatibility)
+  const userType = type || role;
+  
+  // Check required fields for all users
+  if (!firstName || !lastName) {
+    return next(
+      new AppError("Please provide firstName and lastName", 400)
+    );
+  }
+  
+  // For employer accounts, check company field
+  if (userType === "employer" && !company) {
+    return next(
+      new AppError("Please provide company name for employers", 400)
+    );
+  }
+
+  // Create user data object
+  const userData = {
     email,
     password,
     passwordConfirm,
-    type,
-    name,
-    company,
-  });
+    type: userType,
+  };
+
+  // Add fields based on user type
+  if (userType === "employee") {
+    userData.firstName = firstName;
+    userData.lastName = lastName;
+  } else if (userType === "employer") {
+    userData.company = company;
+    userData.firstName = firstName;
+    userData.lastName = lastName;
+  }
+
+  // Create a new user and bookmark for that user, in the database
+  const newUser = await User.create(userData);
 
   if (newUser.type === "employee") {
     const newSavedJobs = await savedJobController.createSavedJobs(
@@ -92,7 +129,7 @@ const login = asyncHandler(async function (req, res, next) {
 // Logout function to clear the user's JWT cookie
 const logout = asyncHandler(async function (req, res, next) {
   res.clearCookie("jwt");
-  respondSuccess(200, {}, res);
+  respondSuccess(200, { message: "Logged out successfully" }, res);
 });
 
 /*
@@ -127,6 +164,36 @@ const protect = asyncHandler(async function (req, res, next) {
   next();
 });
 
+// Optional auth - attaches user if authenticated but doesn't block if not
+const optionalAuth = asyncHandler(async function (req, res, next) {
+  let token;
+  if (req.headers.authorization?.startsWith("Bearer")) {
+    token = req.headers.authorization.split(" ")[1];
+  } else if (req.cookies.jwt) {
+    token = req.cookies.jwt;
+  }
+
+  // If no token, just continue without user
+  if (!token) {
+    req.user = null;
+    return next();
+  }
+
+  try {
+    // Decode the user from token
+    const decoded = jwt.verify(token, JWT_SECRET);
+    const currentUser = await User.findById(decoded.id);
+    
+    // Attach user if found, otherwise set to null
+    req.user = currentUser || null;
+  } catch (error) {
+    // If token is invalid, just continue without user
+    req.user = null;
+  }
+  
+  next();
+});
+
 /*
 
 
@@ -146,12 +213,13 @@ function restrictTo(userType) {
 
 */
 
-// Export the authController with signUp, login, logout, and protect functions
+// Export the authController with signUp, login, logout, protect, and optionalAuth functions
 const authController = {
   signUp,
   login,
   logout,
   protect,
+  optionalAuth,
   restrictTo,
 };
 

@@ -13,6 +13,8 @@ const appliedJobsSchema = mongoose.Schema({
       ref: "Job",
     },
   ],
+}, {
+  timestamps: true
 });
 
 // Model for applied jobs

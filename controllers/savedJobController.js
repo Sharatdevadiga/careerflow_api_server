@@ -17,11 +17,40 @@ async function createSavedJobs(userId, next) {
 
 // function to get all the saved jobs for a user
 const getSavedJobs = asyncHandler(async function (req, res, next) {
-  const savedJobs = await SavedJobs.find({ user: req.user._id }).populate(
-    "jobs"
-  );
+  const { page = 1, limit = 10 } = req.query;
+  const skip = (page - 1) * limit;
 
-  respondSuccess(200, { savedJobs }, res);
+  // Get the user's saved jobs document
+  const savedJobsDoc = await SavedJobs.findOne({ user: req.user._id });
+
+  // Handle case when user has no saved jobs document yet
+  if (!savedJobsDoc || !savedJobsDoc.jobs || savedJobsDoc.jobs.length === 0) {
+    return respondSuccess(200, [], res, {
+      results: 0,
+      page: parseInt(page),
+      totalPages: 0,
+      total: 0
+    });
+  }
+
+  // Get total count of saved jobs
+  const totalSavedJobs = savedJobsDoc.jobs.length;
+  const totalPages = Math.ceil(totalSavedJobs / limit);
+
+  // Get paginated jobs
+  const savedJobsWithPagination = await SavedJobs.findOne({ user: req.user._id })
+    .select('jobs')
+    .slice('jobs', [skip, parseInt(limit)])
+    .populate('jobs');
+
+  const jobs = savedJobsWithPagination?.jobs || [];
+
+  respondSuccess(200, jobs, res, {
+    results: jobs.length,
+    page: parseInt(page),
+    totalPages,
+    total: totalSavedJobs
+  });
 });
 
 // function to add a job to the savedJobs list
@@ -50,7 +79,7 @@ const addSavedJob = asyncHandler(async function (req, res, next) {
 
   savedJobs = await savedJobs.populate("jobs");
 
-  respondSuccess(200, { savedJobs }, res);
+  respondSuccess(200, savedJobs, res);
 });
 
 //funciton  to delete a job from the savedJobs list
@@ -75,7 +104,7 @@ const deleteSavedJob = asyncHandler(async function (req, res, next) {
   await savedJobs.save();
 
   savedJobs = await savedJobs.populate("jobs");
-  respondSuccess(200, { savedJobs }, res);
+  respondSuccess(200, savedJobs, res);
 });
 
 //exporting the functions

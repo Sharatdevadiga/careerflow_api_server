@@ -5,6 +5,7 @@ function globalErrorHandler(err, req, res, next) {
   // Setting default status code and status message if not provided
   err.statusCode = err.statusCode || 500; // Default status code
   err.status = err.status || "error"; // Default status
+  console.log('Error details:', err);
 
   // Determine the environment and send appropriate error response
   if (process.env.NODE_ENV === "development") {
