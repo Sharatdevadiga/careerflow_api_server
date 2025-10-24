@@ -61,7 +61,7 @@ app.use("/api/v1/savedjobs", savedJobRouter); // Routes for saved jobs
 app.use("/api/v1/appliedjobs", appliedJobRouter); // Routes for applied jobs
 
 app.use("/", (req, res) => {
-  res.send("Welcome to the Naukri Clone API 😊 : @Sharath");
+  res.send("Welcome to the careerflow API server😊 : @Sharath");
 })
 
 // Route handler for undefined routes (404 Not Found)
