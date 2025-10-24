@@ -15,20 +15,21 @@ export function signJWT(id) {
   return token;
 }
 
-// Helper function to sign a JWT token
+// Helper function to sign a JWT token and send it in httpOnly cookie
 export function createSendToken(user, statusCode, res) {
   const token = signJWT(user._id);
 
-  // Set the JWT token in a secure cookie
+  // Set the JWT token in a secure httpOnly cookie
   const cookieOptions = {
     expires: new Date(Date.now() + JWT_COOKIE_EXPIRES_IN * 24 * 60 * 60 * 1000),
-    httpOnly: true,
-    sameSite: "none",
-    secure: NODE_ENV === "production",
+    httpOnly: true, // Prevents JavaScript access to the cookie
+    sameSite: NODE_ENV === "production" ? "none" : "lax", // CSRF protection
+    secure: NODE_ENV === "production", // Only send cookie over HTTPS in production
+    path: "/", // Cookie available for all routes
   };
   res.cookie("jwt", token, cookieOptions);
   user.password = undefined;
 
-  // Send a success response with the user data and JWT token
-  respondSuccess(statusCode, user, res, { token });
+  // Send a success response with the user data (NO TOKEN in response body)
+  respondSuccess(statusCode, user, res);
 }

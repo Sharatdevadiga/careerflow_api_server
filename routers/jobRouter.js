@@ -10,19 +10,14 @@ router.get("/", authController.optionalAuth, jobController.getJobs);
 router.get("/search/:searchtext", authController.optionalAuth, jobController.getSearchJobs);
 router.get("/:id", jobController.getJob);
 
-// Middleware to protect routes, ensuring only authenticated users can access them
+// Protected routes - require authentication
 router.use(authController.protect);
 
-// Employee routes (no restriction needed for viewing jobs)
-// Employer-only routes
-router.use(authController.restrictTo("employer"));
-router.post("/", jobController.createJob);
-router.get("/employer/my-jobs", jobController.getEmployerJobs);
-router.get("/:id/applicants", appliedJobController.getJobApplicants);
-
-router
-  .route("/:id")
-  .patch(jobController.updateJob)
-  .delete(jobController.deleteJob);
+// Employer-only routes - only employers can perform these actions
+router.post("/", authController.restrictTo("employer"), jobController.createJob);
+router.get("/employer/my-jobs", authController.restrictTo("employer"), jobController.getEmployerJobs);
+router.get("/:id/applicants", authController.restrictTo("employer"), appliedJobController.getJobApplicants);
+router.patch("/:id", authController.restrictTo("employer"), jobController.updateJob);
+router.delete("/:id", authController.restrictTo("employer"), jobController.deleteJob);
 
 export default router;

@@ -140,10 +140,12 @@ const logout = asyncHandler(async function (req, res, next) {
 // Protect function to verify JWT token and secure access to protected routes
 const protect = asyncHandler(async function (req, res, next) {
   let token;
-  if (req.headers.authorization?.startsWith("Bearer")) {
-    token = req.headers.authorization.split(" ")[1];
-  } else if (req.cookies.jwt) {
+  
+  // Prioritize cookie over Authorization header (for httpOnly cookie implementation)
+  if (req.cookies.jwt) {
     token = req.cookies.jwt;
+  } else if (req.headers.authorization?.startsWith("Bearer")) {
+    token = req.headers.authorization.split(" ")[1];
   }
 
   if (!token) {
@@ -167,10 +169,12 @@ const protect = asyncHandler(async function (req, res, next) {
 // Optional auth - attaches user if authenticated but doesn't block if not
 const optionalAuth = asyncHandler(async function (req, res, next) {
   let token;
-  if (req.headers.authorization?.startsWith("Bearer")) {
-    token = req.headers.authorization.split(" ")[1];
-  } else if (req.cookies.jwt) {
+  
+  // Prioritize cookie over Authorization header
+  if (req.cookies.jwt) {
     token = req.cookies.jwt;
+  } else if (req.headers.authorization?.startsWith("Bearer")) {
+    token = req.headers.authorization.split(" ")[1];
   }
 
   // If no token, just continue without user
@@ -199,11 +203,27 @@ const optionalAuth = asyncHandler(async function (req, res, next) {
 
 */
 
-function restrictTo(userType) {
+// RestrictTo middleware - accepts multiple roles
+// Usage: restrictTo('employer'), restrictTo('employee'), or restrictTo('admin', 'employer')
+function restrictTo(...allowedRoles) {
   return function (req, res, next) {
-    if (userType !== req.user.type) {
-      return next(new AppError("You are not authorised for this action", 403));
+    // Check if user exists (should be set by protect middleware)
+    if (!req.user) {
+      return next(
+        new AppError("You must be logged in to access this resource", 401)
+      );
     }
+
+    // Check if user's type/role is in the allowed roles
+    if (!allowedRoles.includes(req.user.type)) {
+      return next(
+        new AppError(
+          `Access denied. This resource is only available to ${allowedRoles.join(', ')} users.`,
+          403
+        )
+      );
+    }
+    
     next();
   };
 }
@@ -213,7 +233,70 @@ function restrictTo(userType) {
 
 */
 
-// Export the authController with signUp, login, logout, protect, and optionalAuth functions
+// Change password function - requires authentication
+const changePassword = asyncHandler(async function (req, res, next) {
+  const { currentPassword, newPassword, newPasswordConfirm } = req.body;
+
+  console.log('Password change request:', { currentPassword: '***', newPassword: '***', newPasswordConfirm: '***' });
+
+  // Validate input fields
+  if (!currentPassword || !newPassword || !newPasswordConfirm) {
+    return next(
+      new AppError("Please provide current password, new password, and confirmation", 400)
+    );
+  }
+
+  // Check if new password and confirmation match
+  if (newPassword !== newPasswordConfirm) {
+    return next(new AppError("New password and confirmation do not match", 400));
+  }
+
+  // Password length validation
+  if (newPassword.length < 8 || newPassword.length > 15) {
+    return next(new AppError("New password must be between 8 and 15 characters long", 400));
+  }
+
+  // Get user from database with password field
+  const user = await User.findById(req.user.id).select("+password");
+  if (!user) {
+    return next(new AppError("User not found", 404));
+  }
+
+  console.log('Found user, checking current password...');
+  console.log('User ID:', user._id);
+  console.log('User email:', user.email);
+  console.log('Stored password hash:', user.password);
+  console.log('Input current password:', currentPassword);
+
+  // Verify current password
+  const isCurrentPasswordCorrect = await user.checkPassword(currentPassword, user.password);
+  console.log('Current password check result:', isCurrentPasswordCorrect);
+  
+  if (!isCurrentPasswordCorrect) {
+    return next(new AppError("Current password is incorrect", 401));
+  }
+
+  console.log('Current password verified, updating to new password...');
+
+  // Update password (pre-save middleware will hash it)
+  user.password = newPassword;
+  user.passwordConfirm = newPasswordConfirm;
+  
+  try {
+    await user.save();
+    console.log('Password updated successfully');
+    
+    // Send success response (don't send new token, just confirmation)
+    respondSuccess(200, {
+      message: "Password updated successfully"
+    }, res);
+  } catch (error) {
+    console.error('Error saving user:', error);
+    return next(new AppError("Failed to update password", 500));
+  }
+});
+
+// Export the authController with signUp, login, logout, protect, optionalAuth, and changePassword functions
 const authController = {
   signUp,
   login,
@@ -221,6 +304,7 @@ const authController = {
   protect,
   optionalAuth,
   restrictTo,
+  changePassword,
 };
 
 export default authController;

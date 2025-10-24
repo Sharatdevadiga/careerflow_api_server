@@ -106,7 +106,14 @@ userSchema.methods.checkPassword = async function (
   inputPassword,
   actualPassword
 ) {
-  return await bcrypt.compare(inputPassword, actualPassword);
+  console.log('checkPassword method called:');
+  console.log('Input password:', inputPassword);
+  console.log('Stored hash:', actualPassword);
+  
+  const result = await bcrypt.compare(inputPassword, actualPassword);
+  console.log('bcrypt.compare result:', result);
+  
+  return result;
 };
 
 // Create and export the User model using the userSchema

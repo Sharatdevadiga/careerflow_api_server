@@ -27,11 +27,28 @@ app.use(morgan("dev"));
 app.use(express.json()); // for parsing JSON payloads
 app.use(cookieParser()); // for parsing cookies from client
 
-// CORS configuration to allow requests only from specified origin
+// CORS configuration to allow credentials (cookies) from frontend
+const allowedOrigins = [
+  process.env.CLIENT_URL || "http://localhost:5174",
+  "http://localhost:5173",
+  "http://localhost:3000",
+];
+
 app.use(
   cors({
-    origin: true, // Allow all origins
-    credentials: true, // Allow credentials (cookies, headers)
+    origin: function (origin, callback) {
+      // Allow requests with no origin (like mobile apps, Postman, curl)
+      if (!origin) return callback(null, true);
+      
+      if (allowedOrigins.indexOf(origin) !== -1) {
+        callback(null, true);
+      } else {
+        callback(new Error('Not allowed by CORS'));
+      }
+    },
+    credentials: true, // IMPORTANT: Allow credentials (cookies, authorization headers)
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
   })
 );
 app.use(compression()); // for compressing the API responses
